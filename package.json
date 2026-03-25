@@ -22,7 +22,7 @@
     "pickleparser": "^0.2.1",
     "pinia": "^3.0.4",
     "streamsaver": "^2.0.6",
-    "unrpyc-pure": "^1.0.2",
+    "unrpyc-pure": "^1.0.3",
     "vue": "^3.5.30"
   },
   "devDependencies": {
