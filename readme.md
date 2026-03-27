@@ -1,6 +1,6 @@
-# Ren'Py Archive Explore
+# Ren'Py Archive Explorer
 
-Ren'Py Archive Explore is a browser-based tool for unpacking `.rpa` archives and decompiling `.rpyc` files.
+Ren'Py Archive Explorer is a browser-based tool for unpacking `.rpa` archives and decompiling `.rpyc` files.
 
 It lets you browse and preview files inside Ren'Py archives directly in the browser, including images, videos, music, fonts, and script files. You can also export individual files or the entire archive.
 
