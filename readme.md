@@ -14,3 +14,11 @@ Visit:https://asakuraminani.github.io/RPA-Explorer/
 - Export individual files or full archives
 - Drag and drop a game directory, `.rpa` file, or single `.rpyc` file
 - Fully client-side, with no file uploads
+  
+## Preview
+
+![Ren'Py Archive Explorer Home](docs/images/rpa-explorer-home.png)
+
+![Ren'Py Archive Explorer Viewer](docs/images/rpa-explorer-viewer.png)
+
+![Ren'Py Archive Explorer Extract](docs/images/rpa-explorer-extract.png)
