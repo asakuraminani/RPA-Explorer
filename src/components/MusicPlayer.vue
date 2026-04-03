@@ -2,8 +2,18 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useMusicStore } from '../stores/music';
 import { useFileStore } from '../stores/file';
-import { getRpaFileData, detectFileType } from '../utils/rpaFileHelper';
 import { usePersistenceStore } from '../stores/persistence';
+import { fileTypeFromBuffer } from 'file-type';
+
+/**
+ * Detects the file type based on its content using file-type library.
+ * @param {ArrayBuffer} buffer - The file content
+ * @returns {Promise<string|null>} - The detected extension (e.g., 'mp3', 'ogg', 'png') or null
+ */
+async function detectFileType(buffer) {
+    const type = await fileTypeFromBuffer(buffer);
+    return type ? type.ext : null;
+}
 import { useNavigationStore } from '../stores/navigation';
 import { getArchiveSelectionId, getOrParseArchiveData, resolveFileSource, resolveProjectRpaFile } from '../utils/archive';
 import logger from '../utils/logger';
@@ -190,7 +200,7 @@ const scanMusic = async () => {
 
     for (const entry of audioEntries) {
       try {
-        const buffer = await getRpaFileData(file, entry, data.key);
+        const buffer = (await data.read(entry)).buffer;
         let ext = entry.path.split('.').pop().toLowerCase();
         const detectedExt = await detectFileType(buffer);
 
@@ -324,7 +334,7 @@ watch(currentTrack, async (track) => {
       }
 
       const { data } = await getOrParseArchiveData(archiveFile, persistenceStore);
-      const buffer = await getRpaFileData(archiveFile, track.entry, data.key);
+      const buffer = (await data.read(track.entry)).buffer;
       const ext = track.entry.path.split('.').pop().toLowerCase();
 
       let mime = 'audio/mpeg';

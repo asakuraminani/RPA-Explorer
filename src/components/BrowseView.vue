@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import TreeNode from './TreeNode.vue';
-import { getRpaFileData } from '../utils/rpaFileHelper';
 import { EditorView, basicSetup } from 'codemirror';
 import { Compartment } from '@codemirror/state';
 import { python } from '@codemirror/lang-python';
@@ -1377,6 +1376,27 @@ async function resolveFilesystemNodeFile(node) {
   return null;
 }
 
+async function getFileRawContent(node) {
+  if (node.sourceType === 'archive') {
+    const { data } = await getOrParseArchiveData(node.archiveFile, persistenceStore);
+    if (isCompiledRpy(node.path)) {
+      return await data.decompile(node.archiveEntry);
+    }
+    return await data.readText(node.archiveEntry);
+  }
+
+  if (node.sourceType === 'filesystem') {
+    const buffer = await getFileData(node);
+    if (isCompiledRpy(node.path)) {
+      return await decompileRpyc(buffer);
+    }
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    return decoder.decode(buffer.buffer);
+  }
+
+  throw new Error('Unsupported file source.');
+}
+
 async function onSelectFile(node) {
   if (node.type !== 'file') return;
 
@@ -1396,17 +1416,21 @@ async function onSelectFile(node) {
   const isMedia = isImageFile(node.path) || isAudioFile(node.path) || isVideoFile(node.path) || isFontFile(node.path);
 
   try {
-    if (isCompiledRpy(node.path)) {
-      const buffer = await getFileData(node);
+    if (isCompiledRpy(node.path) || isTextFile(node.path)) {
       try {
-        newRawContent = decompileRpyc(buffer);
+        newRawContent = await getFileRawContent(node);
         newContent = applyEditorTransforms(newRawContent);
       } catch (error) {
-        newRawContent = `# Failed to decompile ${node.name}: ${error.message}`;
+        newRawContent = `# Failed to read or decompile ${node.name}: ${error.message}`;
         newContent = applyEditorTransforms(newRawContent);
+        if (isCompiledRpy(node.path)) {
+          nextErrorMessage = `Decompilation failed: ${error.message}`;
+        } else {
+          nextErrorMessage = `Read failed: ${error.message}`;
+        }
       }
     } else if (isMedia) {
-      const buffer = await getFileData(node);
+      const buffer = (await getFileData(node)).buffer;
       const type = getMimeType(node.path);
       const blob = new Blob([buffer], { type });
       newUrl = URL.createObjectURL(blob);
@@ -1466,11 +1490,6 @@ async function onSelectFile(node) {
 
         newContent = fontName;
       }
-    } else if (isTextFile(node.path)) {
-      const buffer = await getFileData(node);
-      const decoder = new TextDecoder('utf-8', { fatal: false });
-      newRawContent = decoder.decode(buffer);
-      newContent = applyEditorTransforms(newRawContent);
     }
   } catch (error) {
     const message = `Failed to read ${node.path}: ${error.message || String(error)}`;
@@ -1505,7 +1524,8 @@ async function onSelectFile(node) {
 
 async function getFileData(node) {
   if (node.sourceType === 'archive') {
-    return await getRpaFileData(node.archiveFile, node.archiveEntry, node.archiveKey, autoDeobfuscate);
+    const { data } = await getOrParseArchiveData(node.archiveFile, persistenceStore);
+    return await data.read(node.archiveEntry);
   }
 
   if (node.sourceType === 'filesystem') {
@@ -1513,7 +1533,7 @@ async function getFileData(node) {
     if (!file) {
       throw new Error('File handle is no longer available.');
     }
-    return await file.arrayBuffer();
+    return new Uint8Array(await file.arrayBuffer());
   }
 
   throw new Error('Unsupported file source.');
@@ -1535,7 +1555,7 @@ async function exportSelectedFile() {
 
   try {
     const node = displayedNode.value;
-    const buffer = await getFileData(node);
+    const buffer = (await getFileData(node)).buffer;
     const blob = new Blob([buffer], { type: 'application/octet-stream' });
     downloadBlob(blob, node.name);
 

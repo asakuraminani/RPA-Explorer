@@ -323,7 +323,7 @@ async function prepare() {
 
   try {
     const { data } = await getOrParseArchiveData(currentFile, persistenceStore);
-    archiveInfo.value = { name: currentFile.name, size: currentFile.size, key: data.key };
+    archiveInfo.value = { name: currentFile.name, size: currentFile.size, key: data.metadata.key };
     entries.value = data.entries;
   } catch (err) {
     extractionStore.setError(`Failed to parse RPA file: ${err.message}`);

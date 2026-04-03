@@ -2,8 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { saveArchive, getAllArchives, deleteArchive, getArchive, deletePlaylist } from '../utils/db';
-import { parseRpaFile } from '../utils/rpaParser';
-import { getRpaFileData } from '../utils/rpaFileHelper';
+import { openRpa } from 'unrpyc-pure/browser';
 import { detectGameStructure, scanRpaFiles, parseTitleFromContent, isThumbnailFile } from '../utils/directoryParser';
 import { createFileArchiveId, createProjectArchiveId } from '../utils/archive';
 import logger from '../utils/logger';
@@ -50,7 +49,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
           if (optionsEntry) {
             try {
               const file = await getFile();
-              const buffer = await getRpaFileData(file, optionsEntry, data.key);
+              const buffer = (await data.read(optionsEntry)).buffer;
               const content = new TextDecoder('utf-8').decode(buffer);
               title = parseTitleFromContent(content);
             } catch (e) {}
@@ -63,7 +62,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
           if (thumbEntry) {
             try {
               const file = await getFile();
-              const buffer = await getRpaFileData(file, thumbEntry, data.key);
+              const buffer = (await data.read(thumbEntry)).buffer;
               thumbnail = new Blob([buffer], { type: 'image/png' });
             } catch (e) {}
           }
@@ -170,7 +169,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
         if (!parsedCache.has(rpa.id)) {
             try {
                 const rpaFile = rpa.file || await rpa.handle.getFile();
-                const data = await parseRpaFile(rpaFile);
+                const data = await openRpa(rpaFile);
                 parsedCache.set(rpa.id, data);
             } catch (e) {
                 logger.warn(`Failed to pre-parse RPA ${rpa.name}: ${e.message}`);

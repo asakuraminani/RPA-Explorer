@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { getRpaFileData } from '../utils/rpaFileHelper';
+import { getOrParseArchiveData } from '../utils/archive';
+import { usePersistenceStore } from './persistence';
 import streamSaver from 'streamsaver';
 import * as fflate from 'fflate';
 
@@ -95,16 +96,19 @@ export const useExtractionStore = defineStore('extraction', () => {
    * Performs the actual extraction logic in the background.
    */
   async function runExtraction(archiveFile, entries, key) {
+    const persistenceStore = usePersistenceStore();
+    const { data } = await getOrParseArchiveData(archiveFile, persistenceStore);
+
     if (targetHandle.value) {
         // Mode 1: File System Access API (Extract to Folder)
-        await runFolderExtraction(archiveFile, entries, key, targetHandle.value);
+        await runFolderExtraction(archiveFile, entries, data, targetHandle.value);
     } else {
         // Mode 2: StreamSaver (Download as ZIP)
-        await runZipExtraction(archiveFile, entries, key);
+        await runZipExtraction(archiveFile, entries, data);
     }
   }
 
-  async function runFolderExtraction(archiveFile, entries, key, rootHandle) {
+  async function runFolderExtraction(archiveFile, entries, data, rootHandle) {
     try {
         const totalFiles = entries.length;
         let completed = 0;
@@ -156,7 +160,7 @@ export const useExtractionStore = defineStore('extraction', () => {
                     const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
                     const writable = await fileHandle.createWritable();
                     
-                    const buffer = await getRpaFileData(archiveFile, entry, key, true);
+                    const buffer = (await data.read(entry)).buffer;
                     await writable.write(buffer);
                     await writable.close();
                 } catch (e) {
@@ -178,7 +182,7 @@ export const useExtractionStore = defineStore('extraction', () => {
     }
   }
 
-  async function runZipExtraction(archiveFile, entries, key) {
+  async function runZipExtraction(archiveFile, entries, data) {
     try {
         const totalFiles = entries.length;
         let completed = 0;
@@ -217,7 +221,7 @@ export const useExtractionStore = defineStore('extraction', () => {
             }
 
             try {
-                const buffer = await getRpaFileData(archiveFile, entry, key, true);
+                const buffer = (await data.read(entry)).buffer;
                 const fileData = new Uint8Array(buffer);
                 
                 // Add file to ZIP stream

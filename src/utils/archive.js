@@ -1,5 +1,5 @@
 import { detectGameStructure } from './directoryParser';
-import { parseRpaFile } from './rpaParser';
+import { openRpa } from 'unrpyc-pure/browser';
 
 export function createFileArchiveId(file) {
   if (!file || file.name === undefined || file.size === undefined || file.lastModified === undefined) {
@@ -46,7 +46,7 @@ export async function getOrParseArchiveData(file, persistenceStore) {
     return { id, data: cached, fromCache: true };
   }
 
-  const data = await parseRpaFile(file);
+  const data = await openRpa(file);
   persistenceStore.setParsedData?.(id, data);
 
   return { id, data, fromCache: false };
