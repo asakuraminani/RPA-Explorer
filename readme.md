@@ -4,7 +4,7 @@ Ren'Py Archive Explorer is a browser-based tool for unpacking `.rpa` archives an
 
 It lets you browse and preview files inside Ren'Py archives directly in the browser, including images, videos, music, fonts, and script files. You can also export individual files or the entire archive.
 
-Visit:https://asakuraminani.github.io/RPA-Explorer/
+Visit:https://asakura-minami.github.io/RPA-Explorer/
 
 ## Features
 
